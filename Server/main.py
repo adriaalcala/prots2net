@@ -5,36 +5,70 @@ import random
 import requests
 import subprocess
 import platform
-
+import tarfile
+from time import sleep
 
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
+from Bio import SeqIO
+import Server.VisualizeNN as VisNN
+import numpy as np
 
 
 def create_secuences_file(input_file, species1):
-    bashcommand = f'cp {input_file} data/secuences/{species1}.faa'
-    subprocess.Popen(bashcommand.split(), stdout=subprocess.PIPE)
+    print(input_file, species1)
+    if input_file is None:
+        get_secuences(species1)
+    else:
+        bashcommand = f'cp {input_file} data/secuences/{species1}.faa'
+        subprocess.Popen(bashcommand.split(), stdout=subprocess.PIPE)
 
 def read_info(input_file):
     pass
 
-def get_secuences(species: str, use_cache=True):
-    if os.path.isfile(f'data/secuences/{species}.faa') and use_cache:
-        return None
-    url = "http://ltimbigd2.uib.es:11080/db/stringdb/items/sequences/select"
-    payload = {"columns": ["protein_id", "sequence"], "filter":{"species_id":[int(species)]}}
-    response = requests.post(url, json=payload)
-    data = response.text
-    sequences = [r.split('\t') for r in data.split('\n')][:-1]
-    with open(f"data/secuences/{species}.faa", 'w') as f:
-        for row in sequences:
-            f.writelines([f">{row[0]}\n", f"{row[1]}\n"])
 
-def get_edges(species_id: str):
-    url = f"http://ltimbigd2.uib.es:11080/db/stringdb/network/edges/weighted?species_id={species_id}&score_type=database_score&threshold=0"
-    response = requests.get(url).text
-    edges = [r.split('\t') for r in response.split('\n')]
-    return {f"{e[0]}_{e[1]}": float(e[2]) for e in  edges[1:-1] if None not in e}
+def get_secuences(species: str, use_cache=True):
+    if os.path.isfile(f'data/secuences/{species}.protein.sequences.v11.5.fa') and use_cache:
+        return None
+    url = f"https://stringdb-static.org/download/protein.sequences.v11.5/{species}.protein.sequences.v11.5.fa.gz"
+    bashcommand = f"curl {url} --output {species}.fa.gz"
+    process = subprocess.Popen(bashcommand.split(), stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    print(output)
+    bashcommand = f"gunzip {species}.fa.gz"
+    process = subprocess.Popen(bashcommand.split(), stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    print(output)
+    bashcommand = f"mv {species}.fa data/secuences/{species}.protein.sequences.v11.5.fa"
+    process = subprocess.Popen(bashcommand.split(), stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    print(output)
+
+
+def download_edges(species: str):
+    url = f"https://stringdb-static.org/download/protein.links.v11.5/{species}.protein.links.v11.5.txt.gz"
+    bashcommand = f"curl {url} --output {species}_links.txt.gz"
+    process = subprocess.Popen(bashcommand.split(), stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    print(output)
+    bashcommand = f"gunzip {species}_links.txt.gz"
+    process = subprocess.Popen(bashcommand.split(), stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    print(output)
+    bashcommand = f"mv {species}_links.txt data/edges/{species}.protein.links.v11.5.txt"
+    process = subprocess.Popen(bashcommand.split(), stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    print(output)
+    
+
+def get_edges(species: str, use_cache=True):
+    if not os.path.isfile(f'data/edges/{species}.protein.links.v11.5.txt') and use_cache:
+        download_edges(species)
+    with open(f'data/edges/{species}.protein.links.v11.5.txt') as f:
+        reader = csv.reader(f, delimiter=' ')
+        rows = list(reader)
+    return {f"{e[0]}_{e[1]}": float(e[2]) for e in  rows[1:]}
+
 
 def build_dataset(species1, species2):
     blast_matrix = compute_blast(species1, species2)
@@ -47,11 +81,16 @@ def build_dataset(species1, species2):
     training_data = []
     result = []
     train_prots = []
+    i = 0
+    total = len(prots)
     for p11 in prots:
+        i += 1
+        if random.random() > 0.8:
+            print(i, total)
         p21 = prot_prot[p11]
         for p12 in prots:
             p22 = prot_prot[p12]
-            if random.random() > 0.8:
+            if random.random() > 0.9:
                 edge_2_value = edges_2.get(f"{p21}_{p22}") or edges_2.get(f"{p22}_{p21}", 0)
                 training_data.append([prot_bitscore[p11], prot_bitscore[p12], edge_2_value])
                 edge_1_value = edges.get(f"{p11}_{p12}") or edges.get(f"{p12}_{p11}", 0)
@@ -63,13 +102,51 @@ def build_dataset(species1, species2):
     return training_data, result
 
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
+def compute_blast_new(species1, species2, write_result=True):
+    print('blast', species1, species2)
+    if os.path.isfile(f'data/blast/result_{species1}_{species2}.csv'):
+        with open(f'data/blast/result_{species1}_{species2}.csv') as f:
+            reader = csv.DictReader(f, fieldnames=['protein_1', 'protein_2', 'bit_score'])
+            return list(reader)
+    print('start compute blast')
+    fasta_sequences = SeqIO.parse(open(f"data/secuences/{species1}.protein.sequences.v11.5.fa"),'fasta')
+    names = [f.id for f in fasta_sequences]
+    triads = []
+    i = 0
+    total = len(names) / 100
+    species1 = species1.split('_')[0]
+    for chunk in chunks(names, 100):
+        identifiers = '%0d'.join(chunk)
+        url = f'https://string-db.org/api/json/homology_best?identifiers={identifiers}&species={species1}&species_b={species2}'
+        #print('url', url)
+        response = requests.get(url)
+        #print(response)
+        result = response.json()
+        #print(result)
+        triads.extend([{'protein_1': r['stringId_A'], 'protein_2': r['stringId_B'], 'bit_score': r['bitscore']} for r in result])
+        i += 1
+        print(i, total)
+    print(triads[-1])
+    if write_result:
+        with open(f'data/blast/result_{species1}_{species2}.csv', 'w') as f:
+            writer = csv.DictWriter(f, fieldnames=['protein_1', 'protein_2', 'bit_score'])
+            writer.writerows(triads)
+    return triads
+
+
 def compute_blast(species1, species2, write_result=True):
     if os.path.isfile(f'data/blast/result_{species1}_{species2}.csv'):
         with open(f'data/blast/result_{species1}_{species2}.csv') as f:
             reader = csv.DictReader(f, fieldnames=['protein_1', 'protein_2', 'bit_score'])
             return list(reader)
     print('start compute blast')
-    bashcommand = f'psiblast -query data/secuences/{species1}.faa -subject data/secuences/{species2}.faa -outfmt 15'
+    bashcommand = f'psiblast -query data/secuences/{species1}.protein.sequences.v11.5.fa -subject data/secuences/{species2}.protein.sequences.v11.5.fa -outfmt 15'
     process = subprocess.Popen(bashcommand.split(), stdout=subprocess.PIPE)
     output, _ = process.communicate()
     print('end compute blast')
@@ -136,7 +213,9 @@ def train_model(species1, species2):
     scaler.fit(training_data)
     X_train = scaler.transform(training_data)
     clf = MLPClassifier(solver='adam', alpha=1e-6, max_iter=30000,hidden_layer_sizes=(5, 2), random_state=1, tol=1e-8)
+    print('start fit')
     clf.fit(X_train, result).score(X_train, result)
+    print('model trained')
     return clf, scaler
 
 
@@ -153,6 +232,8 @@ def get_size(info_file, attribute_filter):
     return attributes, sizes
 
 def compute_network(main_species_id, aux_species_id_1, aux_species_id_2, secuences_file, info_file, attribute_filter, bar=None, bar_text=None):
+    if os.path.isfile(f'data/nets/Net_{main_species_id}_{aux_species_id_1}.csv'):
+        return None, f'data/nets/Net_{main_species_id}_{aux_species_id_1}.csv'
     bar.step(0.1)
     set_bar_text(bar_text, f"Getting secuences for {aux_species_id_1}")
     get_secuences(aux_species_id_1)
@@ -178,10 +259,6 @@ def compute_network(main_species_id, aux_species_id_1, aux_species_id_2, secuenc
     prots_idx = {p:i for i,p in enumerate(prots)}
     new_edges = []
     set_bar_text(bar_text, f"Predicting edges")
-    # attributes, sizes = get_size(info_file, attribute_filter)
-    attributes = ['DAY', 'NIGHT', 'NONE']
-    import random
-    sizes = {p: random.choice(attributes) for p in prots}
     for i in range(len(prots)):
         p11 = prots[i]
         print(f"{i} / {len(prots)}")
@@ -199,12 +276,10 @@ def compute_network(main_species_id, aux_species_id_1, aux_species_id_2, secuenc
                         'protein_1': p11, 'protein_1_idx': prots_idx[p11],
                         'protein_2': p12, 'protein_2_idx': prots_idx[p12],
                         'confidence': clf.predict_proba(scaler.transform([v]))[0][1],
-                        'attributes': attributes, 'attribute_p1': sizes[p11],
-                        'attribute_p2': sizes[p12]
                     }
                 )
     with open(f'data/nets/Net_{main_species_id}_{aux_species_id_1}.csv', 'w') as f:
-            writer = csv.DictWriter(f, fieldnames=['protein_1', 'protein_1_idx', 'protein_2', 'protein_2_idx', 'confidence', 'attributes', 'attribute_p1', 'attribute_p2'])
+            writer = csv.DictWriter(f, fieldnames=['protein_1', 'protein_1_idx', 'protein_2', 'protein_2_idx', 'confidence'])
             writer.writeheader()
             writer.writerows(new_edges)
 
