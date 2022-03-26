@@ -131,3 +131,12 @@ dmypy.json
 .vscode
 extra_files
 .idea
+
+data/blast/*
+data/edges/*
+data/graphs/*
+data/images/*
+data/nets/*
+data/others
+data/reports
+data/secuences/*
