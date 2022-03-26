@@ -4,15 +4,10 @@ import os
 import random
 import requests
 import subprocess
-import platform
-import tarfile
-from time import sleep
 
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 from Bio import SeqIO
-import Server.VisualizeNN as VisNN
-import numpy as np
 
 
 def create_secuences_file(input_file, species1):
