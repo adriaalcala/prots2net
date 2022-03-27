@@ -8,9 +8,6 @@ Updated by Russell Adams, 2011/01/24 to support Python 3 and Combobox.
 Updated by Dominic Kexel to use ttk and ttk instead of tkinter and tkinter.ttk
    Licensed same as original (not specified?), or public domain, whichever is less restrictive.
 """
-import sys
-import os
-# import ttk
 from tkinter import ttk
 import tkinter as tk
 
@@ -82,7 +79,6 @@ class AutocompleteEntry(ttk.Entry):
 class AutocompleteCombobox(ttk.Combobox):
 
     def set_completion_list(self, completion_list):
-        print('a')
         """Use our completion list as our drop down selection menu, arrows move through menu."""
         self._completion_list = sorted(completion_list, key=str.lower) # Work with a sorted list
         self._hits = []

@@ -71,7 +71,7 @@ def create_tab_control(window):
     tab_control.add(tab2, text='Visualize Network')
     tab_control.add(tab3, text='Node info')
     tab_control.add(tab4, text='Edge info')
-    return tab_control
+    return tab_control, tab1, tab2, tab3, tab4
 
 
 def create_main_tab(tab):
