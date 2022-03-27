@@ -6,7 +6,7 @@ The prediction model is a multilayer perceptron neural network that  uses protei
 and interaction information from the STRING database. To train the model, Prots2Net explores the PPINs retrieved from the 
 STRING database of two selected species.
 
-##How to install and execute
+## How to install and execute
 To install and execute Prots2Net, Python3.6+ is need. To execute it first install the dependencies in `requirements.txt` 
 and then run with `python -m GUI.main`
 
