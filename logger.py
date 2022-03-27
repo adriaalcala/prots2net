@@ -18,7 +18,7 @@ class StackDriverJsonFormatter(jsonlogger.JsonFormatter, object):
 handler = logging.StreamHandler(sys.stdout)
 formatter = StackDriverJsonFormatter()
 handler.setFormatter(formatter)
-logger = logging.getLogger("service")
+logger = logging.getLogger("Prots2Net")
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 logger.propagate = False

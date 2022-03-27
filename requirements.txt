@@ -1,0 +1,11 @@
+networkx~=2.7.1
+matplotlib~=3.5.1
+ttkthemes~=2.4.0
+Pillow~=9.0.1
+requests~=2.27.1
+joblib~=1.1.0
+scikit-learn~=1.1.dev0
+numpy~=1.23.0.dev0+867.gfa0881fe1
+plotly~=5.6.0
+python-json-logger~=2.0.2
+biopython~~1.79

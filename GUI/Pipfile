@@ -36,10 +36,6 @@ werkzeug = "==1.0.1"
 sklearn = "*"
 pycairo = "*"
 pygobject = "*"
-waitress = "==1.4.3"
-dash-daq = "==0.5.0"
-dash-bootstrap-components = "==0.10.3"
-networkx = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.8"
