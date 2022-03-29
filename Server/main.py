@@ -34,21 +34,22 @@ def get_file(url: str, output: str, destiny: str, compressed=True):
     output_curl = output if not compressed else f"{output}.gz"
     bash_command = f"curl {url} --output {output_curl}"
     process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
-    output, _ = process.communicate()
+    output_bash, _ = process.communicate()
+    print(url, output, output_curl)
     if compressed:
         bash_command = f"gunzip {output_curl}"
         process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
-        output, _ = process.communicate()
+        output_bash, _ = process.communicate()
     bash_command = f"mv {output} {destiny}"
     process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
-    output, _ = process.communicate()
+    output_bash, _ = process.communicate()
 
 
 def get_sequences(species: str, use_cache=True):
     if os.path.isfile(f'data/sequences/{species}.protein.sequences.{STRING_VERSION}.fa') and use_cache:
         return None
     url = f"{STRING_URL}/protein.sequences.{STRING_VERSION}/{species}.protein.sequences.{STRING_VERSION}.fa.gz"
-    get_file(url, "{species}.fa", f"data/sequences/{species}.protein.sequences.{STRING_VERSION}.fa")
+    get_file(url, f"{species}.fa", f"data/sequences/{species}.protein.sequences.{STRING_VERSION}.fa")
 
 
 def get_edges(species: str, use_cache=True):
