@@ -119,6 +119,11 @@ def compute_blast_string(species1, species2, write_result=True):
         url = f'{STRING_API}/homology_best?identifiers={identifiers}&species={species1}&species_b={species2}'
         response = requests.get(url)
         result = response.json()
+        if not result:
+            print(url)
+            raise Exception(
+                'Blast not found in STRING, you can try to switch the species or compute locally the BLAST.')
+
         triads.extend([
             {'protein_1': r['stringId_A'], 'protein_2': r['stringId_B'], 'bit_score': r['bitscore']}
             for r in result
