@@ -26,7 +26,8 @@ def create_sequences_file(input_file, species1):
     if input_file is None:
         get_sequences(species1)
     else:
-        bash_command = f'cp {input_file} data/sequences/{species1}.faa'
+
+        bash_command = f'cp {input_file} data/sequences/{species1}.protein.sequences.v11.5.fa'
         subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
 
 
@@ -120,10 +121,8 @@ def compute_blast_string(species1, species2, write_result=True):
         response = requests.get(url)
         result = response.json()
         if not result:
-            print(url)
             raise Exception(
                 'Blast not found in STRING, you can try to switch the species or compute locally the BLAST.')
-
         triads.extend([
             {'protein_1': r['stringId_A'], 'protein_2': r['stringId_B'], 'bit_score': r['bitscore']}
             for r in result
@@ -249,7 +248,7 @@ def compute_network(main_species_id, aux_species_id_1, aux_species_id_2, sequenc
 
     create_sequences_file(sequences_file, main_species_id)
     set_bar_text(bar_text, f"Computing blast between {main_species_id} and {aux_species_id_1}")
-    blast_matrix = compute_blast(main_species_id, aux_species_id_1)
+    blast_matrix = compute_blast(main_species_id, aux_species_id_1, method='LOCAL')
     bar_step = set_bar_step(bar, 25, bar_step)
     set_bar_text(bar_text, f"Getting {aux_species_id_1} edges")
     edges_output = get_edges(aux_species_id_1)
