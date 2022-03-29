@@ -11,7 +11,8 @@ from sklearn.preprocessing import StandardScaler
 from Bio import SeqIO
 
 from logger import logger
-from Server.constants import DEFAULT_BLAST_METHOD, INTERACTION_THRESHOLD, STRING_API, STRING_URL, STRING_VERSION
+from Server.constants import (
+    DEFAULT_BLAST_METHOD, INTERACTION_THRESHOLD, STRING_API, STRING_URL, STRING_VERSION, MAIN_SPECIES_BLAST_METHOD)
 
 
 def prepare_paths():
@@ -114,10 +115,14 @@ def compute_blast_string(species1, species2, write_result=True):
     fasta_sequences = SeqIO.parse(open(f"data/sequences/{species1}.protein.sequences.{STRING_VERSION}.fa"), 'fasta')
     names = [f.id for f in fasta_sequences]
     triads = []
+    try:
+        species1_aux = int(species1)
+    except ValueError:
+        species1_aux = names[0].split('.')[0]
     species1 = species1.split('_')[0]
     for chunk in chunks(names, 100):
         identifiers = '%0d'.join(chunk)
-        url = f'{STRING_API}/homology_best?identifiers={identifiers}&species={species1}&species_b={species2}'
+        url = f'{STRING_API}/homology_best?identifiers={identifiers}&species={species1_aux}&species_b={species2}'
         response = requests.get(url)
         result = response.json()
         if not result:
@@ -248,7 +253,7 @@ def compute_network(main_species_id, aux_species_id_1, aux_species_id_2, sequenc
 
     create_sequences_file(sequences_file, main_species_id)
     set_bar_text(bar_text, f"Computing blast between {main_species_id} and {aux_species_id_1}")
-    blast_matrix = compute_blast(main_species_id, aux_species_id_1, method='LOCAL')
+    blast_matrix = compute_blast(main_species_id, aux_species_id_1, method=MAIN_SPECIES_BLAST_METHOD)
     bar_step = set_bar_step(bar, 25, bar_step)
     set_bar_text(bar_text, f"Getting {aux_species_id_1} edges")
     edges_output = get_edges(aux_species_id_1)
