@@ -32,3 +32,7 @@ The Prots2Net GUI consist in 4 different tabs:
 ![proteins](Prots2Net_GUI_nodes.png)
 #### Visualize interactions
 ![interactions](Prots2Net_GUI_edges.png)
+
+
+## Extra System Requirements
+In order to use blast locally, blast have to be installed locally. Instructions can be found in https://www.ncbi.nlm.nih.gov/books/NBK52640/ .
