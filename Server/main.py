@@ -34,7 +34,7 @@ def create_sequences_file(input_file, species1):
 
 def get_file(url: str, output: str, destiny: str, compressed=True):
     output_curl = output if not compressed else f"{output}.gz"
-    bash_command = f"curl {url} --output {output_curl}"
+    bash_command = f"curl -k {url} --output {output_curl}"
     process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
     output_bash, _ = process.communicate()
     print(url, output, output_curl)

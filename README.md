@@ -35,4 +35,4 @@ The Prots2Net GUI consist in 4 different tabs:
 
 
 ## Extra System Requirements
-In order to use blast locally, blast have to be installed locally. Instructions can be found in https://www.ncbi.nlm.nih.gov/books/NBK52640/ .
+In order to use blast locally, blast must to be installed locally. Instructions can be found in https://www.ncbi.nlm.nih.gov/books/NBK52640/ .
